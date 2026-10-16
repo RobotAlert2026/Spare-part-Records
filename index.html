@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spare Part Records</title>
+<script>
+  if (localStorage.theme === 'dark' || (!localStorage.theme && matchMedia('(prefers-color-scheme: dark)').matches))
+    document.documentElement.classList.add('dark');
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: 'class' }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+
+<body class="min-h-screen bg-gray-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+
+<header class="blueprint bg-red-800 text-white">
+  <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 pt-4">
+    <div class="flex items-center gap-3">
+      <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-red-700 text-xl font-bold text-white" aria-hidden="true">SP</div>
+      <div>
+        <h1 class="text-lg font-bold leading-tight sm:text-2xl" data-i="title"></h1>
+        <p class="hidden text-sm text-slate-300 sm:block" data-i="sub"></p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button id="langBtn" type="button" class="hbtn" aria-label="Language">EN</button>
+      <button id="themeBtn" type="button" class="hbtn" data-i="theme"></button>
+    </div>
+  </div>
+  <nav class="mx-auto mt-4 flex max-w-5xl gap-1 px-4" role="tablist">
+    <button class="tab" role="tab" id="tRec" aria-selected="true" aria-controls="vRec" tabindex="0" data-i="tabRec"></button>
+    <button class="tab" role="tab" id="tHis" aria-selected="false" aria-controls="vHis" tabindex="-1" data-i="tabHis"></button>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-5xl px-4 py-6">
+
+<!-- ================= RECORD VIEW ================= -->
+<form id="vRec" role="tabpanel" aria-labelledby="tRec" tabindex="0" novalidate class="space-y-5">
+  <section class="card grid gap-4 sm:grid-cols-2">
+    <h2 class="sec !mb-0 sm:col-span-2"><span class="num">1</span><span data-i="s1"></span></h2>
+    <div class="relative sm:col-span-2" id="mWrap">
+      <label class="lbl" for="mBtn"><span data-i="machine"></span> *</label>
+      <button type="button" id="mBtn" class="field flex items-center justify-between text-left" aria-haspopup="listbox" aria-expanded="false">
+        <span id="mLabel" class="text-slate-500 dark:text-slate-400" data-i="selMachine"></span><span aria-hidden="true">▾</span>
+      </button>
+      <div id="mPanel" class="absolute z-20 mt-1 hidden w-full rounded-lg border border-slate-300 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-900">
+        <div class="p-2"><input id="mSearch" type="search" class="field" data-ph="searchM" autocomplete="off"></div>
+        <ul id="mList" role="listbox" class="max-h-64 overflow-y-auto pb-1"></ul>
+      </div>
+    </div>
+    <div><label class="lbl" for="tech"><span data-i="tech"></span> *</label><input id="tech" class="field" autocomplete="name" data-ph="techPh"></div>
+    <div><label class="lbl" for="date"><span data-i="date"></span> *</label><input id="date" type="datetime-local" class="field"></div>
+  </section>
+
+  <section>
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="sec !mb-0"><span class="num">2</span><span data-i="s2"></span></h2>
+      <button type="button" id="addItem" class="btn btn-ghost" data-i="add"></button>
+    </div>
+    <div id="items" class="space-y-3"></div>
+  </section>
+
+  <section class="card space-y-3">
+    <h2 class="sec !mb-1"><span class="num">3</span><span data-i="s3"></span></h2>
+    <div class="flex flex-wrap gap-2">
+      <label class="btn btn-ghost cursor-pointer"><span data-i="camera"></span><input id="camIn" type="file" accept="image/*" capture="environment" class="sr-only"></label>
+      <label class="btn btn-ghost cursor-pointer"><span data-i="gallery"></span><input id="galIn" type="file" accept="image/*" multiple class="sr-only"></label>
+    </div>
+    <div id="thumbs" class="grid grid-cols-3 gap-2 sm:grid-cols-5"></div>
+    <p id="noImg" class="text-sm text-slate-500 dark:text-slate-400" data-i="noPhoto"></p>
+  </section>
+
+  <section class="card">
+    <h2 class="sec !mb-3"><span class="num">4</span><span data-i="s4"></span></h2>
+    <textarea id="remarks" rows="3" class="field" data-ph="remarksPh"></textarea>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <button type="button" id="resetBtn" class="btn btn-ghost" data-i="clear"></button>
+    <button type="submit" id="saveBtn" class="btn btn-primary sm:min-w-[220px]"></button>
+  </div>
+</form>
+
+<!-- ================= HISTORY VIEW ================= -->
+<section id="vHis" role="tabpanel" aria-labelledby="tHis" tabindex="0" class="hidden space-y-4">
+  <div class="card grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <input id="hQ" type="search" class="field sm:col-span-2" data-ph="hSearch" aria-label="Search">
+    <select id="hM" class="field sm:col-span-2" aria-label="Machine"></select>
+    <div><label class="lbl" for="hFrom" data-i="from"></label><input id="hFrom" type="date" class="field"></div>
+    <div><label class="lbl" for="hTo" data-i="to"></label><input id="hTo" type="date" class="field"></div>
+    <div class="flex flex-wrap items-end gap-2 sm:col-span-2 lg:justify-end">
+      <button type="button" id="hRefresh" class="btn btn-ghost" data-i="refresh"></button>
+      <button type="button" id="auditBtn" class="btn btn-ghost" data-i="audit"></button>
+      <button type="button" id="hClear" class="btn btn-ghost" data-i="clearFilters"></button>
+      <button type="button" id="xCsv" class="btn btn-primary">CSV</button>
+      <button type="button" id="xXlsx" class="btn btn-primary">Excel</button>
+    </div>
+  </div>
+  <p id="hSum" class="px-1 text-sm text-slate-600 dark:text-slate-400"></p>
+  <div id="hList" class="space-y-3"></div>
+</section>
+</main>
+
+<div id="toasts" class="fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4" aria-live="polite"></div>
+<dialog id="editDialog" class="w-[min(96vw,48rem)] max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+  <form id="editForm" method="dialog" class="space-y-4 p-4 sm:p-6">
+    <div class="flex items-center justify-between gap-3"><h2 class="text-xl font-bold" data-i="editTitle"></h2><button id="editClose" type="button" class="btn btn-ghost !min-h-0 px-3" aria-label="Close">×</button></div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div><label class="lbl" for="editMachine" data-i="machine"></label><input id="editMachine" class="field" required></div>
+      <div><label class="lbl" for="editTech" data-i="tech"></label><input id="editTech" class="field" required></div>
+      <div class="sm:col-span-2"><label class="lbl" for="editDate" data-i="date"></label><input id="editDate" type="datetime-local" class="field" required></div>
+    </div>
+    <div class="flex items-center justify-between gap-2"><h3 class="text-lg font-semibold" data-i="s2"></h3><button id="editAddPart" type="button" class="btn btn-ghost" data-i="editAddPart"></button></div>
+    <div id="editItems" class="space-y-3"></div>
+    <div><label class="lbl" for="editRemarks" data-i="s4"></label><textarea id="editRemarks" rows="3" class="field"></textarea></div>
+    <div class="flex flex-col-reverse justify-end gap-2 sm:flex-row"><button id="editCancel" type="button" class="btn btn-ghost" data-i="editCancel"></button><button id="editSave" type="submit" class="btn btn-primary" data-i="editSave"></button></div>
+  </form>
+</dialog>
+<dialog id="auditDialog" class="w-[min(96vw,48rem)] max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+  <div class="space-y-4 p-4 sm:p-6">
+    <div class="flex items-center justify-between gap-3"><h2 class="text-xl font-bold" data-i="auditTitle"></h2><button id="auditClose" type="button" class="btn btn-ghost !min-h-0 px-3" aria-label="Close">×</button></div>
+    <div id="auditList" class="space-y-3"></div>
+  </div>
+</dialog>
+<dialog id="deleteLoginDialog" class="w-[min(96vw,28rem)] rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+  <form id="deleteLoginForm" class="space-y-4 p-4 sm:p-6">
+    <h2 class="text-xl font-bold" data-i="loginTitle"></h2><p class="text-sm text-slate-600 dark:text-slate-300" data-i="loginHint"></p>
+    <div><label class="lbl" for="deleteEmail" data-i="email"></label><input id="deleteEmail" type="email" autocomplete="username" class="field" required></div>
+    <div><label class="lbl" for="deletePassword" data-i="password"></label><input id="deletePassword" type="password" autocomplete="current-password" class="field" required></div>
+    <div class="flex flex-col-reverse justify-end gap-2 sm:flex-row"><button id="deleteLoginCancel" type="button" class="btn btn-ghost" data-i="editCancel"></button><button id="deleteLoginSubmit" type="submit" class="btn btn-primary" data-i="login"></button></div>
+  </form>
+</dialog>
+<datalist id="units"><option>Pcs</option><option>Set</option><option>Meter</option><option>Box</option><option>Roll</option><option>Liter</option><option>Kg</option></datalist>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
+
