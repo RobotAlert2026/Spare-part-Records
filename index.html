@@ -32,15 +32,40 @@
     </div>
   </div>
   <nav class="mx-auto mt-4 flex max-w-5xl gap-1 px-4" role="tablist">
-    <button class="tab" role="tab" id="tRec" aria-selected="true" aria-controls="vRec" tabindex="0" data-i="tabRec"></button>
+    <button class="tab" role="tab" id="tDash" aria-selected="true" aria-controls="vDash" tabindex="0" data-i="tabDash"></button>
+    <button class="tab" role="tab" id="tRec" aria-selected="false" aria-controls="vRec" tabindex="-1" data-i="tabRec"></button>
     <button class="tab" role="tab" id="tHis" aria-selected="false" aria-controls="vHis" tabindex="-1" data-i="tabHis"></button>
   </nav>
 </header>
 
 <main class="mx-auto max-w-5xl px-4 py-6">
 
+<!-- ================= DASHBOARD VIEW ================= -->
+<section id="vDash" role="tabpanel" aria-labelledby="tDash" tabindex="0" class="space-y-4">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div><h2 class="text-2xl font-bold" data-i="dashboardTitle"></h2><p class="text-sm text-slate-500 dark:text-slate-400" data-i="dashboardSub"></p></div>
+    <div class="flex flex-wrap gap-2">
+      <select id="dPeriod" class="field !w-auto" aria-label="Period"><option value="30" data-i="last30"></option><option value="90" data-i="last90"></option><option value="365" data-i="lastYear"></option><option value="0" data-i="allTime"></option></select>
+      <select id="dM" class="field !w-auto" aria-label="Machine"></select>
+      <button type="button" id="dRefresh" class="btn btn-primary" data-i="refresh"></button>
+    </div>
+  </div>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="card"><p class="stat-label" data-i="dashRecords"></p><p id="dRecords" class="stat-value">—</p></div>
+    <div class="card"><p class="stat-label" data-i="dashParts"></p><p id="dParts" class="stat-value">—</p></div>
+    <div class="card"><p class="stat-label" data-i="dashMachines"></p><p id="dMachines" class="stat-value">—</p></div>
+    <div class="card"><p class="stat-label" data-i="dashTopMachine"></p><p id="dTopMachine" class="stat-value text-xl">—</p></div>
+  </div>
+  <div class="grid gap-4 lg:grid-cols-2">
+    <section class="card"><h3 class="mb-4 text-lg font-bold" data-i="dashTrend"></h3><div id="dashTrendChart" class="space-y-3"></div></section>
+    <section class="card"><h3 class="mb-4 text-lg font-bold" data-i="dashMachineRank"></h3><div id="dashMachineChart" class="space-y-3"></div></section>
+    <section class="card"><h3 class="mb-4 text-lg font-bold" data-i="dashPartRank"></h3><div id="dashPartChart" class="space-y-3"></div></section>
+    <section class="card"><h3 class="mb-4 text-lg font-bold" data-i="dashRecent"></h3><div id="dashRecentList" class="space-y-2"></div></section>
+  </div>
+</section>
+
 <!-- ================= RECORD VIEW ================= -->
-<form id="vRec" role="tabpanel" aria-labelledby="tRec" tabindex="0" novalidate class="space-y-5">
+<form id="vRec" role="tabpanel" aria-labelledby="tRec" tabindex="0" novalidate class="hidden space-y-5">
   <section class="card grid gap-4 sm:grid-cols-2">
     <h2 class="sec !mb-0 sm:col-span-2"><span class="num">1</span><span data-i="s1"></span></h2>
     <div class="relative sm:col-span-2" id="mWrap">

@@ -39,6 +39,13 @@ let lang = localStorage.lang || 'th';
 const extraI18n = { clearFilters: { en: 'Clear filters', th: 'ล้างตัวกรอง' } };
 const t = (k, v = {}) => { const r = D.find(x => x[0] === k); let s = extraI18n[k]?.[lang] ?? (r ? r[lang === 'th' ? 2 : 1] : k); for (const a in v) s = s.replace(`{${a}}`, v[a]); return s; };
 Object.assign(extraI18n, {
+  tabDash: { en: 'Dashboard', th: '\u0e41\u0e14\u0e0a\u0e1a\u0e2d\u0e23\u0e4c\u0e14' },
+  dashboardTitle: { en: 'Replacement dashboard', th: '\u0e41\u0e14\u0e0a\u0e1a\u0e2d\u0e23\u0e4c\u0e14\u0e01\u0e32\u0e23\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e2d\u0e30\u0e44\u0e2b\u0e25\u0e48' }, dashboardSub: { en: 'See replacement trends at a glance.', th: '\u0e14\u0e39\u0e41\u0e19\u0e27\u0e42\u0e19\u0e49\u0e21\u0e44\u0e14\u0e49\u0e17\u0e31\u0e19\u0e17\u0e35' },
+  last30: { en: 'Last 30 days', th: '30 \u0e27\u0e31\u0e19\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14' }, last90: { en: 'Last 90 days', th: '90 \u0e27\u0e31\u0e19\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14' }, lastYear: { en: 'Last 12 months', th: '12 \u0e40\u0e14\u0e37\u0e2d\u0e19\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14' }, allTime: { en: 'All time', th: '\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14' },
+  dashRecords: { en: 'Replacement records', th: '\u0e08\u0e33\u0e19\u0e27\u0e19\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19' }, dashParts: { en: 'Parts used', th: '\u0e08\u0e33\u0e19\u0e27\u0e19\u0e2d\u0e30\u0e44\u0e2b\u0e25\u0e48' }, dashMachines: { en: 'Machines affected', th: '\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e08\u0e31\u0e01\u0e23' }, dashTopMachine: { en: 'Most frequent machine', th: '\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e17\u0e35\u0e48\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e1a\u0e48\u0e2d\u0e22' },
+  dashTrend: { en: 'Replacement trend', th: '\u0e41\u0e19\u0e27\u0e42\u0e19\u0e49\u0e21\u0e01\u0e32\u0e23\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19' }, dashMachineRank: { en: 'Top machines', th: '\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e17\u0e35\u0e48\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e1a\u0e48\u0e2d\u0e22' }, dashPartRank: { en: 'Top parts', th: '\u0e2d\u0e30\u0e44\u0e2b\u0e25\u0e48\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e1a\u0e48\u0e2d\u0e22' }, dashRecent: { en: 'Recent replacements', th: '\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14' }, dashEmpty: { en: 'No data for this period.', th: '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25' }
+});
+Object.assign(extraI18n, {
   edit: { en: 'Edit record', th: 'แก้ไขรายการ' }, editTitle: { en: 'Edit record', th: 'แก้ไขประวัติการเปลี่ยนอะไหล่' },
   editSave: { en: 'Save changes', th: 'บันทึกการแก้ไข' }, editCancel: { en: 'Cancel', th: 'ยกเลิก' },
   editAddPart: { en: 'Add part', th: 'เพิ่มอะไหล่' }, editSaved: { en: 'Record updated.', th: 'บันทึกการแก้ไขแล้ว' },
@@ -90,18 +97,22 @@ $('#themeBtn').onclick = () => { localStorage.theme = document.documentElement.c
 function setLang(l) {
   lang = l; localStorage.lang = l; document.documentElement.lang = l;
   $('#langBtn').textContent = l === 'th' ? 'EN' : 'TH';
-  applyI18n(); renumber(); setBusy(false); fillMachineFilter(); if (records) renderHistory();
+  applyI18n(); renumber(); setBusy(false); fillMachineFilter(); if (records) { renderHistory(); renderDashboard(); }
 }
 $('#langBtn').onclick = () => setLang(lang === 'th' ? 'en' : 'th');
-function setTab(h) {
-  $('#tRec').setAttribute('aria-selected', !h); $('#tHis').setAttribute('aria-selected', h);
-  $('#tRec').tabIndex = h ? -1 : 0; $('#tHis').tabIndex = h ? 0 : -1;
-  $('#vRec').classList.toggle('hidden', h); $('#vHis').classList.toggle('hidden', !h);
-  if (h && !records) loadHistory();
+function setTab(view) {
+  [['dash', 'Dash'], ['rec', 'Rec'], ['his', 'His']].forEach(([key, id]) => {
+    const active = view === key;
+    $(`#t${id}`).setAttribute('aria-selected', active);
+    $(`#t${id}`).tabIndex = active ? 0 : -1;
+    $(`#v${id}`).classList.toggle('hidden', !active);
+  });
+  if ((view === 'dash' || view === 'his') && !records) loadHistory();
+  if (view === 'dash' && records) renderDashboard();
 }
-$('#tRec').onclick = () => setTab(false); $('#tHis').onclick = () => setTab(true);
+$('#tDash').onclick = () => setTab('dash'); $('#tRec').onclick = () => setTab('rec'); $('#tHis').onclick = () => setTab('his');
 document.querySelector('[role="tablist"]').addEventListener('keydown', e => {
-  const tabs = [$('#tRec'), $('#tHis')], current = tabs.indexOf(document.activeElement);
+  const tabs = [$('#tDash'), $('#tRec'), $('#tHis')], current = tabs.indexOf(document.activeElement);
   if (current < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
   e.preventDefault();
   const next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (current + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
@@ -298,6 +309,8 @@ function fillMachineFilter() {
   const s = $('#hM'), cur = s.value;
   const names = [...new Set([...MACHINES, ...(records || []).map(r => r.machine_name).filter(Boolean)])];
   s.innerHTML = `<option value="">${t('allM')}</option>` + names.map(m => `<option>${esc(m)}</option>`).join(''); s.value = cur;
+  const d = $('#dM'), dcur = d.value;
+  d.innerHTML = `<option value="">${t('allM')}</option>` + names.map(m => `<option>${esc(m)}</option>`).join(''); d.value = dcur;
 }
 async function loadHistory() {
   const box = $('#hList'); $('#hSum').textContent = '';
@@ -307,7 +320,7 @@ async function loadHistory() {
     const snap = await getDocs(query(collection(db, 'spare_part_records'), orderBy('created_at', 'desc'), limit(500)));
     records = snap.docs.map(d => { const x = d.data(); return { ...x, items: x.items || [], images: x.images || [], _date: x.replacement_date?.toDate?.() || null }; }).filter(r => !r.deleted_at);
     fillMachineFilter();
-    renderHistory();
+    renderHistory(); renderDashboard();
   } catch (err) { console.error(err); box.innerHTML = `<div class="card text-red-600">${esc(t('loadFail', { e: err.code || err.message }))}</div>`; }
 }
 let auditEntries = [];
@@ -372,6 +385,37 @@ function filtered() {
   return (records || []).filter(r => (!m || r.machine_name === m) && (!fd || r._date >= fd) && (!td || r._date <= td) &&
     (!q || [r.record_id, r.machine_name, r.recorded_by, r.general_remarks, ...r.items.flatMap(i => [i.part_code, i.part_name, i.serial_no])].join(' ').toLowerCase().includes(q)));
 }
+function dashboardFiltered() {
+  const period = Number($('#dPeriod').value), machineName = $('#dM').value;
+  const start = period ? new Date(Date.now() - period * 86400000) : null;
+  return (records || []).filter(r => (!machineName || r.machine_name === machineName) && (!start || (r._date && r._date >= start)));
+}
+function dashBars(target, rows, color = 'bg-red-700') {
+  const box = $(target);
+  if (!rows.length) { box.innerHTML = `<p class="text-sm text-slate-500">${t('dashEmpty')}</p>`; return; }
+  const max = Math.max(...rows.map(x => x.value), 1);
+  box.innerHTML = rows.map(x => `<div class="space-y-1"><div class="flex justify-between gap-3 text-sm"><span class="truncate">${esc(x.label)}</span><b>${x.value}</b></div><div class="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"><div class="h-full rounded-full ${color}" style="width:${Math.max(4, x.value / max * 100)}%"></div></div></div>`).join('');
+}
+function renderDashboard() {
+  const list = dashboardFiltered(), parts = list.flatMap(r => r.items || []);
+  $('#dRecords').textContent = list.length.toLocaleString(); $('#dParts').textContent = parts.reduce((n, i) => n + (Number(i.quantity) || 0), 0).toLocaleString();
+  const machines = [...new Set(list.map(r => r.machine_name).filter(Boolean))]; $('#dMachines').textContent = machines.length.toLocaleString();
+  const machineCounts = Object.entries(list.reduce((a, r) => { a[r.machine_name] = (a[r.machine_name] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]);
+  $('#dTopMachine').textContent = machineCounts[0]?.[0] || '—';
+  dashBars('#dashMachineChart', machineCounts.slice(0, 6).map(([label, value]) => ({ label, value })));
+  const partCounts = Object.entries(parts.reduce((a, i) => { const label = i.part_code || i.part_name || '—'; a[label] = (a[label] || 0) + (Number(i.quantity) || 0); return a; }, {})).sort((a, b) => b[1] - a[1]);
+  dashBars('#dashPartChart', partCounts.slice(0, 6).map(([label, value]) => ({ label, value })), 'bg-amber-500');
+  const period = Number($('#dPeriod').value), buckets = period <= 30 ? 7 : 6, now = new Date(), trend = Array.from({ length: buckets }, (_, index) => {
+    const end = new Date(now); end.setDate(now.getDate() - (buckets - 1 - index) * (period <= 30 ? 4 : 30)); const begin = new Date(end); begin.setDate(end.getDate() - (period <= 30 ? 3 : 29));
+    return { label: begin.toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short' }), value: list.filter(r => r._date && r._date >= begin && r._date <= end).length };
+  });
+  dashBars('#dashTrendChart', trend, 'bg-slate-700');
+  const recent = [...list].sort((a, b) => (b._date || 0) - (a._date || 0)).slice(0, 5);
+  $('#dashRecentList').innerHTML = recent.length ? recent.map(r => `<button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800" data-record-id="${esc(r.record_id)}"><span class="min-w-0"><b class="block truncate">${esc(r.machine_name)}</b><small class="text-slate-500">${esc(r.items?.[0]?.part_name || r.items?.[0]?.part_code || '—')} · ${esc(r.recorded_by)}</small></span><small class="shrink-0 text-slate-500">${esc(fmt(r._date))}</small></button>`).join('') : `<p class="text-sm text-slate-500">${t('dashEmpty')}</p>`;
+}
+['dPeriod', 'dM'].forEach(id => $('#' + id).addEventListener('input', () => records && renderDashboard()));
+$('#dRefresh').onclick = () => { records = null; loadHistory(); };
+$('#dashRecentList').addEventListener('click', e => { const id = e.target.closest('[data-record-id]')?.dataset.recordId; if (!id) return; $('#hQ').value = id; setTab('his'); });
 function renderHistory() {
   const list = filtered(), box = $('#hList');
   $('#hSum').textContent = t('sum', { r: list.length, p: list.reduce((n, r) => n + r.items.length, 0) });
@@ -556,4 +600,4 @@ $('#xXlsx').onclick = () => {
 };
 
 // ---------- Init ----------
-fillMachineFilter(); resetForm(); setLang(lang);
+fillMachineFilter(); resetForm(); setLang(lang); setTab('dash');
