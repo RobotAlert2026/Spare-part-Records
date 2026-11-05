@@ -290,19 +290,22 @@ $('#vRec').addEventListener('submit', async e => {
   setBusy(false);
   const record_id = newRecordId();
   try {
-    const uploadGroup = async (group, label) => {
+    const uploadGroup = async (group, label, storagePrefix) => {
       const urls = [];
       for (let i = 0; i < group.length; i++) {
         setBusy(true, `${t('up', { i: i + 1, n: group.length })} (${label})`);
         const { blob, type } = await compress(group[i].file);
-        const r = ref(storage, `spare_part_records/${record_id}/${label}/${Date.now()}_${group[i].file.name.replace(/[^\w.\-]+/g, '_')}`);
+        // Keep the same two-level Storage path used by the existing rules.
+        // The before/after distinction is encoded in the filename instead of
+        // adding a nested folder, which would be rejected by those rules.
+        const r = ref(storage, `spare_part_records/${record_id}/${storagePrefix}_${Date.now()}_${group[i].file.name.replace(/[^\w.\-]+/g, '_')}`);
         await uploadBytes(r, blob, { contentType: type || 'image/jpeg' });
         urls.push(await getDownloadURL(r));
       }
       return urls;
     };
-    const beforeUrls = await uploadGroup(imagesBefore, t('beforePhoto'));
-    const afterUrls = await uploadGroup(imagesAfter, t('afterPhoto'));
+    const beforeUrls = await uploadGroup(imagesBefore, t('beforePhoto'), 'before');
+    const afterUrls = await uploadGroup(imagesAfter, t('afterPhoto'), 'after');
     setBusy(true, t('saving'));
     await setDoc(doc(db, 'spare_part_records', record_id), {
       record_id, machine_name: machine, replacement_date: Timestamp.fromDate(new Date($('#date').value)),
