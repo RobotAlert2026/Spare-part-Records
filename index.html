@@ -92,12 +92,26 @@
 
   <section class="card space-y-3">
     <h2 class="sec !mb-1"><span class="num">3</span><span data-i="s3"></span></h2>
-    <div class="flex flex-wrap gap-2">
-      <label class="btn btn-ghost cursor-pointer"><span data-i="camera"></span><input id="camIn" type="file" accept="image/*" capture="environment" class="sr-only"></label>
-      <label class="btn btn-ghost cursor-pointer"><span data-i="gallery"></span><input id="galIn" type="file" accept="image/*" multiple class="sr-only"></label>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+        <h3 class="font-semibold" data-i="beforePhoto"></h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="btn btn-ghost cursor-pointer"><span data-i="camera"></span><input id="camBeforeIn" type="file" accept="image/*" capture="environment" class="sr-only"></label>
+          <label class="btn btn-ghost cursor-pointer"><span data-i="gallery"></span><input id="galBeforeIn" type="file" accept="image/*" multiple class="sr-only"></label>
+        </div>
+        <div id="thumbsBefore" class="grid grid-cols-3 gap-2 sm:grid-cols-4"></div>
+        <p id="noImgBefore" class="text-sm text-slate-500 dark:text-slate-400" data-i="noPhoto"></p>
+      </div>
+      <div class="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+        <h3 class="font-semibold" data-i="afterPhoto"></h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="btn btn-ghost cursor-pointer"><span data-i="camera"></span><input id="camAfterIn" type="file" accept="image/*" capture="environment" class="sr-only"></label>
+          <label class="btn btn-ghost cursor-pointer"><span data-i="gallery"></span><input id="galAfterIn" type="file" accept="image/*" multiple class="sr-only"></label>
+        </div>
+        <div id="thumbsAfter" class="grid grid-cols-3 gap-2 sm:grid-cols-4"></div>
+        <p id="noImgAfter" class="text-sm text-slate-500 dark:text-slate-400" data-i="noPhoto"></p>
+      </div>
     </div>
-    <div id="thumbs" class="grid grid-cols-3 gap-2 sm:grid-cols-5"></div>
-    <p id="noImg" class="text-sm text-slate-500 dark:text-slate-400" data-i="noPhoto"></p>
   </section>
 
   <section class="card">

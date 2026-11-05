@@ -36,7 +36,7 @@ const D = [
  ['xRid','Record ID','รหัสบันทึก'],['xMachine','Machine','เครื่องจักร'],['xDate','Replacement date','วันที่เปลี่ยน'],['xBy','Recorded by','ผู้บันทึก'],['xRemark','General remarks','หมายเหตุทั่วไป'],['xImg','Image URLs','ลิงก์รูปภาพ']
 ];
 let lang = localStorage.lang || 'th';
-const extraI18n = { clearFilters: { en: 'Clear filters', th: 'ล้างตัวกรอง' } };
+const extraI18n = { clearFilters: { en: 'Clear filters', th: 'ล้างตัวกรอง' }, beforePhoto: { en: 'Before replacement', th: '\u0e01\u0e48\u0e2d\u0e19\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19' }, afterPhoto: { en: 'After replacement', th: '\u0e2b\u0e25\u0e31\u0e07\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19' } };
 const t = (k, v = {}) => { const r = D.find(x => x[0] === k); let s = extraI18n[k]?.[lang] ?? (r ? r[lang === 'th' ? 2 : 1] : k); for (const a in v) s = s.replace(`{${a}}`, v[a]); return s; };
 Object.assign(extraI18n, {
   tabDash: { en: 'Dashboard', th: '\u0e41\u0e14\u0e0a\u0e1a\u0e2d\u0e23\u0e4c\u0e14' },
@@ -186,19 +186,24 @@ function renumber() { [...itemsEl.children].forEach((el, i) => el.querySelector(
 $('#addItem').onclick = () => addItem().querySelector('input').focus();
 
 // ---------- Images ----------
-let images = [];
-function addFiles(list) { [...list].filter(f => f.type.startsWith('image/')).forEach(file => images.push({ file, url: URL.createObjectURL(file) })); renderThumbs(); }
-function renderThumbs() {
-  const box = $('#thumbs'); box.innerHTML = ''; $('#noImg').classList.toggle('hidden', images.length > 0);
+let imagesBefore = [], imagesAfter = [];
+function addFiles(list, kind) {
+  const target = kind === 'before' ? imagesBefore : imagesAfter;
+  [...list].filter(f => f.type.startsWith('image/')).forEach(file => target.push({ file, url: URL.createObjectURL(file) })); renderThumbs(kind);
+}
+function renderThumbs(kind) {
+  const images = kind === 'before' ? imagesBefore : imagesAfter;
+  const suffix = kind[0].toUpperCase() + kind.slice(1);
+  const box = $(`#thumbs${suffix}`); box.innerHTML = ''; $(`#noImg${suffix}`).classList.toggle('hidden', images.length > 0);
   images.forEach((im, i) => {
     const w = document.createElement('div');
     w.className = 'relative aspect-square overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600';
     w.innerHTML = `<img src="${im.url}" alt="${i + 1}" class="h-full w-full object-cover"><button type="button" aria-label="Remove ${i + 1}" class="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 text-white hover:bg-red-600">✕</button>`;
-    w.querySelector('button').onclick = () => { URL.revokeObjectURL(im.url); images.splice(i, 1); renderThumbs(); };
+    w.querySelector('button').onclick = () => { URL.revokeObjectURL(im.url); images.splice(i, 1); renderThumbs(kind); };
     box.append(w);
   });
 }
-['camIn', 'galIn'].forEach(id => $('#' + id).onchange = e => { addFiles(e.target.files); e.target.value = ''; });
+[['camBeforeIn', 'before'], ['galBeforeIn', 'before'], ['camAfterIn', 'after'], ['galAfterIn', 'after']].forEach(([id, kind]) => $('#' + id).onchange = e => { addFiles(e.target.files, kind); e.target.value = ''; });
 async function compress(file) {   // downscale to max 1600px JPEG; fall back to the original
   try {
     const bmp = await createImageBitmap(file), s = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
@@ -213,7 +218,7 @@ async function compress(file) {   // downscale to max 1600px JPEG; fall back to 
 function resetForm() {
   machine = ''; const l = $('#mLabel'); l.dataset.i = 'selMachine'; l.classList.add('text-slate-500', 'dark:text-slate-400');
   $('#tech').value = ''; $('#remarks').value = ''; $('#date').value = nowLocal();
-  images.forEach(i => URL.revokeObjectURL(i.url)); images = []; renderThumbs();
+  [...imagesBefore, ...imagesAfter].forEach(i => URL.revokeObjectURL(i.url)); imagesBefore = []; imagesAfter = []; renderThumbs('before'); renderThumbs('after');
   itemsEl.innerHTML = ''; addItem(); applyI18n();
   document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
 }
@@ -285,18 +290,24 @@ $('#vRec').addEventListener('submit', async e => {
   setBusy(false);
   const record_id = newRecordId();
   try {
-    const urls = [];
-    for (let i = 0; i < images.length; i++) {       // Storage: spare_part_records/{record_id}/{timestamp}_{filename}
-      setBusy(true, t('up', { i: i + 1, n: images.length }));
-      const { blob, type } = await compress(images[i].file);
-      const r = ref(storage, `spare_part_records/${record_id}/${Date.now()}_${images[i].file.name.replace(/[^\w.\-]+/g, '_')}`);
-      await uploadBytes(r, blob, { contentType: type || 'image/jpeg' });
-      urls.push(await getDownloadURL(r));
-    }
+    const uploadGroup = async (group, label) => {
+      const urls = [];
+      for (let i = 0; i < group.length; i++) {
+        setBusy(true, `${t('up', { i: i + 1, n: group.length })} (${label})`);
+        const { blob, type } = await compress(group[i].file);
+        const r = ref(storage, `spare_part_records/${record_id}/${label}/${Date.now()}_${group[i].file.name.replace(/[^\w.\-]+/g, '_')}`);
+        await uploadBytes(r, blob, { contentType: type || 'image/jpeg' });
+        urls.push(await getDownloadURL(r));
+      }
+      return urls;
+    };
+    const beforeUrls = await uploadGroup(imagesBefore, t('beforePhoto'));
+    const afterUrls = await uploadGroup(imagesAfter, t('afterPhoto'));
     setBusy(true, t('saving'));
     await setDoc(doc(db, 'spare_part_records', record_id), {
       record_id, machine_name: machine, replacement_date: Timestamp.fromDate(new Date($('#date').value)),
-      recorded_by: $('#tech').value.trim(), items, images: urls, general_remarks: $('#remarks').value.trim(), created_at: serverTimestamp()
+      recorded_by: $('#tech').value.trim(), items, images_before: beforeUrls, images_after: afterUrls,
+      images: [...beforeUrls, ...afterUrls], general_remarks: $('#remarks').value.trim(), created_at: serverTimestamp()
     });
     toast(t('saved', { id: record_id })); records = null; resetForm();
   } catch (err) { console.error(err); toast(t('fail', { e: err.code || err.message }), 'err'); }
@@ -318,7 +329,7 @@ async function loadHistory() {
   box.innerHTML = `<div class="card flex items-center justify-center gap-3 text-slate-500"><span class="spin"></span>${t('loading')}</div>`;
   try {
     const snap = await getDocs(query(collection(db, 'spare_part_records'), orderBy('created_at', 'desc'), limit(500)));
-    records = snap.docs.map(d => { const x = d.data(); return { ...x, items: x.items || [], images: x.images || [], _date: x.replacement_date?.toDate?.() || null }; }).filter(r => !r.deleted_at);
+    records = snap.docs.map(d => { const x = d.data(); const before = x.images_before || []; const after = x.images_after || []; return { ...x, items: x.items || [], images_before: before, images_after: after, images: x.images || [...before, ...after], _date: x.replacement_date?.toDate?.() || null }; }).filter(r => !r.deleted_at);
     fillMachineFilter();
     renderHistory(); renderDashboard();
   } catch (err) { console.error(err); box.innerHTML = `<div class="card text-red-600">${esc(t('loadFail', { e: err.code || err.message }))}</div>`; }
@@ -416,6 +427,10 @@ function renderDashboard() {
 ['dPeriod', 'dM'].forEach(id => $('#' + id).addEventListener('input', () => records && renderDashboard()));
 $('#dRefresh').onclick = () => { records = null; loadHistory(); };
 $('#dashRecentList').addEventListener('click', e => { const id = e.target.closest('[data-record-id]')?.dataset.recordId; if (!id) return; $('#hQ').value = id; setTab('his'); });
+function photoGroup(label, urls) {
+  if (!urls?.length) return '';
+  return `<div><p class="mb-1 text-sm font-semibold">${esc(label)}</p><div class="flex flex-wrap gap-2">${urls.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" loading="lazy" alt="${esc(label)}" class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700"></a>`).join('')}</div></div>`;
+}
 function renderHistory() {
   const list = filtered(), box = $('#hList');
   $('#hSum').textContent = t('sum', { r: list.length, p: list.reduce((n, r) => n + r.items.length, 0) });
@@ -440,7 +455,7 @@ function renderHistory() {
           <tbody>${r.items.map(i => `<tr class="border-t border-slate-100 dark:border-slate-800"><td class="py-2 pr-3 font-medium">${esc(i.part_code)}</td><td class="pr-3">${esc(i.part_name)}</td><td class="pr-3">${esc(i.quantity)} ${esc(i.unit)}</td><td class="pr-3">${esc(i.serial_no)}</td><td>${esc(i.remark)}</td></tr>`).join('')}</tbody>
         </table></div>
         ${r.general_remarks ? `<p class="text-sm"><b>${t('rem')}:</b> ${esc(r.general_remarks)}</p>` : ''}
-        ${r.images.length ? `<div class="flex flex-wrap gap-2">${r.images.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" loading="lazy" alt="" class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700"></a>`).join('')}</div>` : ''}
+        ${r.images_before?.length || r.images_after?.length ? `<div class="grid gap-3 sm:grid-cols-2">${photoGroup(t('beforePhoto'), r.images_before)}${photoGroup(t('afterPhoto'), r.images_after)}</div>` : (r.images.length ? photoGroup(t('photos'), r.images) : '')}
       </div>
     </details>`).join('');
   applyI18n(box);
