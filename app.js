@@ -309,7 +309,9 @@ $('#vRec').addEventListener('submit', async e => {
     setBusy(true, t('saving'));
     await setDoc(doc(db, 'spare_part_records', record_id), {
       record_id, machine_name: machine, replacement_date: Timestamp.fromDate(new Date($('#date').value)),
-      recorded_by: $('#tech').value.trim(), items, images_before: beforeUrls, images_after: afterUrls,
+      recorded_by: $('#tech').value.trim(), items,
+      // Keep the original Firestore schema; the before/after prefix in each
+      // Storage filename lets the history view restore the two groups.
       images: [...beforeUrls, ...afterUrls], general_remarks: $('#remarks').value.trim(), created_at: serverTimestamp()
     });
     toast(t('saved', { id: record_id })); records = null; resetForm();
@@ -332,7 +334,12 @@ async function loadHistory() {
   box.innerHTML = `<div class="card flex items-center justify-center gap-3 text-slate-500"><span class="spin"></span>${t('loading')}</div>`;
   try {
     const snap = await getDocs(query(collection(db, 'spare_part_records'), orderBy('created_at', 'desc'), limit(500)));
-    records = snap.docs.map(d => { const x = d.data(); const before = x.images_before || []; const after = x.images_after || []; return { ...x, items: x.items || [], images_before: before, images_after: after, images: x.images || [...before, ...after], _date: x.replacement_date?.toDate?.() || null }; }).filter(r => !r.deleted_at);
+    records = snap.docs.map(d => {
+      const x = d.data(), allImages = x.images || [];
+      const before = x.images_before || allImages.filter(u => /\/before_/.test(u));
+      const after = x.images_after || allImages.filter(u => /\/after_/.test(u));
+      return { ...x, items: x.items || [], images_before: before, images_after: after, images: allImages, _date: x.replacement_date?.toDate?.() || null };
+    }).filter(r => !r.deleted_at);
     fillMachineFilter();
     renderHistory(); renderDashboard();
   } catch (err) { console.error(err); box.innerHTML = `<div class="card text-red-600">${esc(t('loadFail', { e: err.code || err.message }))}</div>`; }
