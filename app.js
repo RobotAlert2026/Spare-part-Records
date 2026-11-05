@@ -336,8 +336,10 @@ async function loadHistory() {
     const snap = await getDocs(query(collection(db, 'spare_part_records'), orderBy('created_at', 'desc'), limit(500)));
     records = snap.docs.map(d => {
       const x = d.data(), allImages = x.images || [];
-      const before = x.images_before || allImages.filter(u => /\/before_/.test(u));
-      const after = x.images_after || allImages.filter(u => /\/after_/.test(u));
+      // Firebase download URLs encode Storage slashes as %2F, so match the
+      // stable filename prefix instead of relying on a literal path slash.
+      const before = x.images_before || allImages.filter(u => /before_/i.test(String(u)));
+      const after = x.images_after || allImages.filter(u => /after_/i.test(String(u)));
       return { ...x, items: x.items || [], images_before: before, images_after: after, images: allImages, _date: x.replacement_date?.toDate?.() || null };
     }).filter(r => !r.deleted_at);
     fillMachineFilter();
@@ -437,9 +439,12 @@ function renderDashboard() {
 ['dPeriod', 'dM'].forEach(id => $('#' + id).addEventListener('input', () => records && renderDashboard()));
 $('#dRefresh').onclick = () => { records = null; loadHistory(); };
 $('#dashRecentList').addEventListener('click', e => { const id = e.target.closest('[data-record-id]')?.dataset.recordId; if (!id) return; $('#hQ').value = id; setTab('his'); });
-function photoGroup(label, urls) {
-  if (!urls?.length) return '';
-  return `<div><p class="mb-1 text-sm font-semibold">${esc(label)}</p><div class="flex flex-wrap gap-2">${urls.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" loading="lazy" alt="${esc(label)}" class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700"></a>`).join('')}</div></div>`;
+function photoGroup(label, urls, showEmpty = false) {
+  if (!urls?.length && !showEmpty) return '';
+  const content = urls?.length
+    ? `<div class="flex flex-wrap gap-2">${urls.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" loading="lazy" alt="${esc(label)}" class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700"></a>`).join('')}</div>`
+    : `<p class="text-sm text-slate-500">${esc(t('noPhoto'))}</p>`;
+  return `<div class="rounded-lg border border-slate-200 p-3 dark:border-slate-700"><p class="mb-2 text-sm font-semibold">${esc(label)}</p>${content}</div>`;
 }
 function renderHistory() {
   const list = filtered(), box = $('#hList');
@@ -465,7 +470,7 @@ function renderHistory() {
           <tbody>${r.items.map(i => `<tr class="border-t border-slate-100 dark:border-slate-800"><td class="py-2 pr-3 font-medium">${esc(i.part_code)}</td><td class="pr-3">${esc(i.part_name)}</td><td class="pr-3">${esc(i.quantity)} ${esc(i.unit)}</td><td class="pr-3">${esc(i.serial_no)}</td><td>${esc(i.remark)}</td></tr>`).join('')}</tbody>
         </table></div>
         ${r.general_remarks ? `<p class="text-sm"><b>${t('rem')}:</b> ${esc(r.general_remarks)}</p>` : ''}
-        ${r.images_before?.length || r.images_after?.length ? `<div class="grid gap-3 sm:grid-cols-2">${photoGroup(t('beforePhoto'), r.images_before)}${photoGroup(t('afterPhoto'), r.images_after)}</div>` : (r.images.length ? photoGroup(t('photos'), r.images) : '')}
+        ${r.images_before?.length || r.images_after?.length ? `<div class="grid gap-3 sm:grid-cols-2">${photoGroup(t('beforePhoto'), r.images_before, true)}${photoGroup(t('afterPhoto'), r.images_after, true)}</div>` : (r.images.length ? photoGroup(t('photos'), r.images) : '')}
       </div>
     </details>`).join('');
   applyI18n(box);
